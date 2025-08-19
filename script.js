@@ -30,9 +30,9 @@ const experiencesData = {
 };
 
 const blogPosts = [
-    { id: 1, title: "Building Scalable APIs with FastAPI", date: "August 12, 2025", content: "During my internship at Fetch, I had the opportunity to work extensively with FastAPI to build high-performance backend services. Here's what I learned about architecting scalable receipt processing pipelines that can handle 100+ requests per second. The key insights include proper async/await usage, implementing efficient database queries, and leveraging HNSW vector indexing for similarity search. One of the most challenging aspects was optimizing the hot-path matching endpoint while maintaining configurability for different partner requirements." },
-    { id: 2, title: "Computer Vision in Production: Lessons from Poker Analytics", date: "August 10, 2025", content: "Working on live-stream poker analysis at sidebetz.ai taught me valuable lessons about deploying computer vision models in production. PyTorch model optimization, handling variable video quality, and managing inference latency were crucial challenges. The project involved training custom OCR models to detect card values and player actions from thousands of hours of video data. Key learnings include the importance of data preprocessing, model versioning, and creating robust pipelines that can handle edge cases in real-world video feeds." },
-    { id: 3, title: "From Microservices to Event Sourcing", date: "August 8, 2025", content: "My experience in Taiwan working with CQRS patterns and event-driven architecture fundamentally changed how I think about system design. Implementing Kafka clusters with Zookeeper for event sourcing taught me about the complexities of distributed systems. The separation of read and write workloads through CQRS not only improved performance but also provided better scalability patterns. Docker containerization and proper service orchestration became essential skills for managing the complexity of microservices architectures." },
+    { id: 1, title: "FastAPI: The Perfect Tool for Rapid Prototyping and Development", date: "August 12, 2025", preview: "Why FastAPI became my go-to choice for building production systems at Fetch, and how it enabled rapid development without sacrificing quality.", file: "fastapi-rapid-prototyping.txt" },
+    { id: 2, title: "Computer Vision in Production: Lessons from Poker Analytics", date: "August 10, 2025", preview: "Working on live-stream poker analysis at sidebetz.ai taught me valuable lessons about deploying computer vision models in production.", file: "computer-vision-production.txt" },
+    { id: 3, title: "From Microservices to Event Sourcing", date: "August 8, 2025", preview: "My experience in Taiwan working with CQRS patterns and event-driven architecture fundamentally changed how I think about system design.", file: "microservices-event-sourcing.txt" },
 ];
 
 const conversations = {
@@ -42,6 +42,99 @@ const conversations = {
 };
 
 // --- COMPONENTS ---
+
+// Onboarding Tooltip Component
+const OnboardingTooltip = ({ tip, onNext, onSkip, isLast }) => {
+    const [position, setPosition] = useState({ top: 0, left: 0 });
+    const [targetRect, setTargetRect] = useState(null);
+    
+    useEffect(() => {
+        const targetElement = document.querySelector(tip.target);
+        if (targetElement) {
+            // Add CSS class to force element to top
+            targetElement.classList.add('onboarding-target-highlight');
+            
+            const rect = targetElement.getBoundingClientRect();
+            setTargetRect({
+                top: rect.top - 8,
+                left: rect.left - 8,
+                width: rect.width + 16,
+                height: rect.height + 16
+            });
+            
+            let top = rect.bottom + 10;
+            let left = rect.left;
+            
+            // Position adjustments based on tip.position
+            if (tip.position === 'bottom-left') {
+                left = rect.right - 200; // Tooltip width
+            } else if (tip.position === 'bottom') {
+                left = rect.left + (rect.width / 2) - 100; // Center
+            }
+            
+            setPosition({ top, left });
+        }
+        
+        // Cleanup function to remove class
+        return () => {
+            const targetElement = document.querySelector(tip.target);
+            if (targetElement) {
+                targetElement.classList.remove('onboarding-target-highlight');
+            }
+        };
+    }, [tip]);
+    
+    return (
+        <>
+            <div className="onboarding-overlay">
+                {/* Clickable area for skipping */}
+                <div className="overlay-background" onClick={onSkip} />
+            </div>
+            
+            {/* Highlighted element area - on top of overlay */}
+            {targetRect && (
+                <div 
+                    className="highlighted-element"
+                    style={{
+                        position: 'fixed',
+                        top: `${targetRect.top}px`,
+                        left: `${targetRect.left}px`,
+                        width: `${targetRect.width}px`,
+                        height: `${targetRect.height}px`,
+                        borderRadius: '8px',
+                        border: '2px solid var(--accent-color)',
+                        background: 'transparent',
+                        pointerEvents: 'none',
+                        zIndex: 10001,
+                        boxShadow: '0 0 0 4px rgba(0, 145, 255, 0.2), 0 0 20px rgba(0, 145, 255, 0.3)'
+                    }}
+                />
+            )}
+            
+            <div 
+                className="onboarding-tooltip"
+                style={{
+                    position: 'fixed',
+                    top: `${position.top}px`,
+                    left: `${position.left}px`,
+                    zIndex: 10002
+                }}
+            >
+                <div className="tooltip-arrow"></div>
+                <div className="tooltip-content">
+                    <h3>{tip.title}</h3>
+                    <p>{tip.description}</p>
+                    <div className="tooltip-actions">
+                        <button className="tooltip-btn secondary" onClick={onSkip}>Skip Tour</button>
+                        <button className="tooltip-btn primary" onClick={onNext}>
+                            {isLast ? 'Got it!' : 'Next'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
 
 // Desktop Spotify Widget Component (EXACT copy from reference)
 const DesktopSpotifyWidget = () => {
@@ -247,18 +340,52 @@ const Professional = () => {
     );
 };
 
+// Simple markdown parser
+const parseMarkdown = (text) => {
+    return text
+        // Headers
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Code inline
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        // Line breaks
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+};
+
 // Thoughts Section Component
 const Thoughts = () => {
     const [selectedPost, setSelectedPost] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [blogContent, setBlogContent] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSelectPost = (post) => {
+    const handleSelectPost = async (post) => {
         setSelectedPost(post);
         setIsFullScreen(false);
+        setLoading(true);
+        
+        try {
+            const response = await fetch(`./blog-posts/${post.file}`);
+            const content = await response.text();
+            const parsedContent = parseMarkdown(content);
+            setBlogContent(parsedContent);
+        } catch (error) {
+            setBlogContent('Error loading blog post content.');
+        }
+        setLoading(false);
     };
 
     const handleClosePost = () => {
         setSelectedPost(null);
+        setBlogContent('');
     };
 
     const toggleFullScreen = () => {
@@ -272,7 +399,7 @@ const Thoughts = () => {
                      <div key={post.id} className="thought-post" onClick={() => handleSelectPost(post)}>
                         <h3>{post.title}</h3>
                         <em>{post.date}</em>
-                        <p>{post.content}</p>
+                        <p>{post.preview}</p>
                     </div>
                 ))}
             </div>
@@ -285,7 +412,14 @@ const Thoughts = () => {
                 >
                      <h2>{selectedPost.title}</h2>
                      <p><em>{selectedPost.date}</em></p>
-                     <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.7'}}>{selectedPost.content}</p>
+                     {loading ? (
+                         <p>Loading...</p>
+                     ) : (
+                         <div 
+                             style={{lineHeight: '1.7'}} 
+                             dangerouslySetInnerHTML={{__html: `<p>${blogContent}</p>`}}
+                         />
+                     )}
                 </MacOSModal>
             )}
         </div>
@@ -317,7 +451,7 @@ const MainWindowApp = () => {
             </div>
             <div className="tabs">
                 <div className={`tab ${activeTab === 'thoughts' ? 'active' : ''}`} onClick={() => setActiveTab('thoughts')}>Blog</div>
-                <div className={`tab ${activeTab === 'professional' ? 'active' : ''}`} onClick={() => setActiveTab('professional')}>About Me</div>
+                <div className={`tab ${activeTab === 'professional' ? 'active' : ''}`} data-tab="professional" onClick={() => setActiveTab('professional')}>About Me</div>
             </div>
             {renderContent()}
         </div>
@@ -449,6 +583,38 @@ const PhoneApp = () => {
 
 // Root Component
 const PortfolioOS = () => {
+    const [showOnboarding, setShowOnboarding] = useState(true);
+    const [currentTip, setCurrentTip] = useState(0);
+    
+    const tips = [
+        {
+            id: 'fullscreen',
+            target: '.fullscreen-btn',
+            title: 'Go Fullscreen',
+            description: 'Click here for the best viewing experience',
+            position: 'bottom-left'
+        },
+        {
+            id: 'about',
+            target: '[data-tab="professional"]',
+            title: 'Learn About Me',
+            description: 'Check out my experience and background',
+            position: 'bottom'
+        }
+    ];
+    
+    const nextTip = () => {
+        if (currentTip < tips.length - 1) {
+            setCurrentTip(currentTip + 1);
+        } else {
+            setShowOnboarding(false);
+        }
+    };
+    
+    const skipOnboarding = () => {
+        setShowOnboarding(false);
+    };
+    
     useEffect(() => {
         const timeEl = document.getElementById('top-time');
         const updateTime = () => {
@@ -475,6 +641,15 @@ const PortfolioOS = () => {
                     <span></span>
                 </div>
                 <div className="top-bar-right">
+                    <button className="fullscreen-btn" onClick={() => {
+                        if (!document.fullscreenElement) {
+                            document.documentElement.requestFullscreen();
+                        } else {
+                            document.exitFullscreen();
+                        }
+                    }}>
+                        ⛶
+                    </button>
                     <span id="top-time">--:--</span>
                 </div>
             </div>
@@ -504,6 +679,15 @@ const PortfolioOS = () => {
                 <h2>Desktop Recommended</h2>
                 <p>For the best viewing experience, please visit this page from a desktop computer.</p>
             </div>
+            
+            {showOnboarding && (
+                <OnboardingTooltip 
+                    tip={tips[currentTip]}
+                    onNext={nextTip}
+                    onSkip={skipOnboarding}
+                    isLast={currentTip === tips.length - 1}
+                />
+            )}
         </StrictMode>
     );
 };

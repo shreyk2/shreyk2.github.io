@@ -1,0 +1,114 @@
+When I started working on internal tools for location services at Fetch, I needed to prove value in the tools I was creating. I faced a choice: stick with the company's Golang stack, or try something that would let me move faster. I chose FastAPI, and it was one of the best decisions I made.
+
+## Why FastAPI Over "Enterprise" Languages?
+
+The conventional wisdom says you need Go or C# for "serious" production systems. But here's the thing: **when you're building internal tools or prototypes, development speed matters more than squeezing out microseconds.**
+
+FastAPI becomes incredibly powerful when you need to:
+- Build proof-of-concepts quickly
+- Iterate on changing requirements
+- Integrate with multiple external services
+- Focus on solving business problems
+
+## My Experience: Location Auditor at Fetch
+
+The location mapping system I built needed to handle:
+- Partner onboarding
+- Location data processing  
+- Multiple external APIs (geocoding, business verification)
+- Revenue tracking and analytics
+
+### With Java/Spring, this would have meant:
+- Creating multiple controllers
+- Configuring dependency injection
+- Writing XML/annotation configurations
+- Tons of boilerplate code
+- Slow feedback loop: change → recompile → restart → test → repeat
+
+### With FastAPI, I could:
+- Define endpoints with simple Python functions
+- Get automatic API documentation with Swagger UI
+- Use type hints for built-in validation
+- Go from idea to working endpoint in **minutes, not hours**
+
+## The Game-Changer: Easy Integration
+
+Need to call Google Places API? `pip install requests` and write a few lines.
+
+Want Redis caching? `pip install redis` and you're done.
+
+The Python ecosystem meant I could focus on **solving problems** instead of fighting build systems.
+
+## Data Processing Made Simple
+
+For the location auditor, I needed to:
+- Process receipt data
+- Match against location databases
+- Generate reports for revenue tracking
+- Create Grafana visualizations
+
+Python's data science ecosystem (pandas, etc.) made this trivial. In Java, I would have needed heavyweight libraries and significantly more code.
+
+## Async Programming Without the Pain
+
+FastAPI's async/await support made it easy to handle:
+- Multiple external API calls
+- Database queries
+- I/O-heavy operations
+
+No complex thread pools or callback chains like in other frameworks.
+
+## Better Developer Experience
+
+**Auto-generated documentation:** Team members could understand and test my APIs without separate docs or Postman collections.
+
+**Type safety:** Pydantic models made API contracts self-documenting and automatically validated.
+
+**Fast iteration:** Real-time updates as I modified code.
+
+## Deployment and Operations
+
+FastAPI applications:
+- Run with minimal overhead
+- Have smaller Docker images than Java apps
+- Start almost instantly (vs 30-60 seconds for Spring Boot)
+
+## When NOT to Use FastAPI
+
+I'm not saying FastAPI should replace everything. If you're building:
+- High-frequency trading systems
+- Services needing millions of requests/second
+- Microsecond latency requirements
+
+Then you might need Go, Rust, or highly optimized Java.
+
+## The Real Impact
+
+The location auditor I built:
+- Processes thousands of receipt matches per hour
+- Generates real-time analytics
+- Handles the load perfectly
+- Was built in a fraction of the time a traditional stack would have taken
+
+When requirements changed (and they always do), I could adapt quickly instead of refactoring complex inheritance hierarchies.
+
+## For Startups and MVPs
+
+FastAPI is even more compelling for rapid development:
+- Go from idea to prototype in hours/days
+- Automatic documentation for frontend devs
+- Simple deployment story
+- Get user feedback quickly
+
+## The Key Insight
+
+**Choose tools based on your actual constraints, not theoretical performance specs.**
+
+In most business contexts:
+- Developer productivity matters more than theoretical benchmarks
+- Time-to-market is crucial
+- Ability to iterate quickly is essential
+
+FastAPI strikes the perfect balance: fast enough for real applications, incredibly productive for developers, great ecosystem, and scales when needed.
+
+For rapid prototyping, internal tools, and projects where you need to prove value quickly, it's become my go-to choice.
