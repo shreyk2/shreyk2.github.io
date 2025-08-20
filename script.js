@@ -7,6 +7,27 @@ const SPOTIFY_CONFIG = {
 
 const { useState, useEffect, StrictMode } = React;
 
+// Device Detection Hook
+const useDeviceType = () => {
+    const [deviceType, setDeviceType] = useState('desktop');
+    
+    useEffect(() => {
+        const updateDeviceType = () => {
+            const width = window.innerWidth;
+            if (width <= 768) setDeviceType('mobile');
+            else if (width <= 1024) setDeviceType('tablet');
+            else if (width <= 1200) setDeviceType('small-desktop');
+            else setDeviceType('desktop');
+        };
+        
+        updateDeviceType();
+        window.addEventListener('resize', updateDeviceType);
+        return () => window.removeEventListener('resize', updateDeviceType);
+    }, []);
+    
+    return deviceType;
+};
+
 // --- DATA ---
 const experiencesData = {
   professional: [
@@ -195,22 +216,147 @@ const MacOSModal = ({ children, title, onClose, onGreenButtonClick, isFullScreen
     </div>
 );
 
-// Liquid Glass Spotify Display
+// Enhanced Spotify Display with Full Album Art
 const SpotifyDisplay = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
+    const [dominantColor, setDominantColor] = useState('#2d1b42');
     
-    // Real songs from your "otw back from sf" playlist
+    // Real songs from your "otw back from sf" playlist with album art
     const playlist = [
-        { title: "Dreams, Fairytales, Fantasies", artist: "A$AP Ferg, Brent Faiyaz", duration: "3:43" },
-        { title: "DEAD MAN WALKING", artist: "Brent Faiyaz", duration: "4:07" },
-        { title: "Good Days", artist: "SZA", duration: "4:38" },
-        { title: "C U Girl", artist: "Steve Lacy", duration: "2:10" },
-        { title: "HONEST", artist: "Baby Keem", duration: "2:53" },
-        { title: "lost souls", artist: "Baby Keem, Brent Faiyaz", duration: "4:30" },
-        { title: "Teenage Fever", artist: "Drake", duration: "3:40" },
-        { title: "Navajo", artist: "Masego", duration: "3:14" }
+        { 
+            title: "Navajo", 
+            artist: "Masego", 
+            duration: "3:14",
+            albumArt: "./images/navajo.jpg",
+            progress: 0.4
+        },
+        { 
+            title: "Dreams, Fairytales, Fantasies", 
+            artist: "A$AP Ferg, Brent Faiyaz", 
+            duration: "3:43",
+            albumArt: "./images/dreams-fairytales-fantasies.jpg",
+            progress: 0
+        },
+        { 
+            title: "DEAD MAN WALKING", 
+            artist: "Brent Faiyaz", 
+            duration: "4:07",
+            albumArt: "./images/dead-man-walking.jpg",
+            progress: 0
+        },
+        { 
+            title: "Good Days", 
+            artist: "SZA", 
+            duration: "4:38",
+            albumArt: "./images/good-days.jpg",
+            progress: 0
+        },
+        { 
+            title: "C U Girl", 
+            artist: "Steve Lacy", 
+            duration: "2:10",
+            albumArt: "./images/c-u-girl.jpg",
+            progress: 0
+        },
+        { 
+            title: "HONEST", 
+            artist: "Baby Keem", 
+            duration: "2:53",
+            albumArt: "./images/honest.jpg",
+            progress: 0
+        },
+        { 
+            title: "lost souls", 
+            artist: "Baby Keem, Brent Faiyaz", 
+            duration: "4:30",
+            albumArt: "./images/lost-souls.jpg",
+            progress: 0
+        },
+        { 
+            title: "Teenage Fever", 
+            artist: "Drake", 
+            duration: "3:40",
+            albumArt: "./images/teenage-fever.jpg",
+            progress: 0
+        }
     ];
+
+    // Extract dominant color from image
+    const extractDominantColor = (imageSrc) => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                ctx.drawImage(img, 0, 0);
+                
+                try {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    const colorCounts = {};
+                    
+                    // Sample every 10th pixel for performance
+                    for (let i = 0; i < data.length; i += 40) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        
+                        // Skip very light or very dark colors
+                        const brightness = (r + g + b) / 3;
+                        if (brightness > 30 && brightness < 220) {
+                            // Round to reduce similar colors
+                            const roundedR = Math.round(r / 20) * 20;
+                            const roundedG = Math.round(g / 20) * 20;
+                            const roundedB = Math.round(b / 20) * 20;
+                            
+                            const color = `${roundedR},${roundedG},${roundedB}`;
+                            colorCounts[color] = (colorCounts[color] || 0) + 1;
+                        }
+                    }
+                    
+                    // Find most common color
+                    let maxCount = 0;
+                    let dominantColor = '45,27,66'; // fallback
+                    
+                    Object.entries(colorCounts).forEach(([color, count]) => {
+                        if (count > maxCount) {
+                            maxCount = count;
+                            dominantColor = color;
+                        }
+                    });
+                    
+                    // Convert to darker shade for background
+                    const [r, g, b] = dominantColor.split(',').map(Number);
+                    const darkerR = Math.max(0, Math.round(r * 0.6));
+                    const darkerG = Math.max(0, Math.round(g * 0.6));
+                    const darkerB = Math.max(0, Math.round(b * 0.6));
+                    
+                    resolve(`rgb(${darkerR}, ${darkerG}, ${darkerB})`);
+                } catch (error) {
+                    resolve('#2d1b42'); // fallback color
+                }
+            };
+            
+            img.onerror = () => resolve('#2d1b42');
+            img.src = imageSrc;
+        });
+    };
+
+    useEffect(() => {
+        // Extract color when song changes
+        const currentSong = playlist[currentSongIndex];
+        extractDominantColor(currentSong.albumArt).then(color => {
+            setDominantColor(color);
+        });
+    }, [currentSongIndex]);
 
     useEffect(() => {
         // Auto-cycle through songs every 15 seconds when playing
@@ -237,32 +383,77 @@ const SpotifyDisplay = () => {
     };
 
     const currentSong = playlist[currentSongIndex];
+    
+    // Format time from progress
+    const formatTime = (progress, duration) => {
+        const totalSeconds = parseInt(duration.split(':')[0]) * 60 + parseInt(duration.split(':')[1]);
+        const currentSeconds = Math.floor(totalSeconds * progress);
+        const mins = Math.floor(currentSeconds / 60);
+        const secs = currentSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
+    // Always show fullscreen player
     return (
-        <div className="spotify-glass-display">
-            <div className="spotify-header-glass">
-                <div className="spotify-icon">🎵</div>
-                <div className="currently-playing">
-                    otw back from sf • shrey
+        <div 
+            className="spotify-fullscreen-player"
+            style={{
+                background: `linear-gradient(135deg, ${dominantColor} 0%, #1a1a2e 100%)`,
+                transition: 'background 1s ease'
+            }}
+        >
+            <div className="spotify-fullscreen-header">
+                <div className="spotify-source">
+                    <span>otw back from sf • shrey</span>
+                </div>
+                <button className="spotify-menu-btn">⋯</button>
+            </div>
+            
+            <div className="spotify-album-container">
+                <div className="clean-frame">
+                    <img 
+                        src={currentSong.albumArt} 
+                        alt={`${currentSong.title} album art`}
+                        className="spotify-album-art"
+                    />
                 </div>
             </div>
             
-            <div className="spotify-main-content">
-                <div className="song-info-left">
-                    <div className="song-title-glass">{currentSong.title}</div>
-                    <div className="artist-glass">{currentSong.artist}</div>
+            <div className="spotify-track-info">
+                <h1 className="spotify-track-title">{currentSong.title}</h1>
+                <p className="spotify-track-artist">{currentSong.artist}</p>
+                
+                {/* Combined Progress + Controls in ONE Modal */}
+                <div className="spotify-progress-container">
+                    <span className="spotify-time-current">{formatTime(currentSong.progress, currentSong.duration)}</span>
+                    <div className="spotify-progress-bar">
+                        <div 
+                            className="spotify-progress-fill"
+                            style={{ width: `${currentSong.progress * 100}%` }}
+                        ></div>
+                        <div className="spotify-progress-handle"></div>
+                    </div>
+                    <span className="spotify-time-total">-{currentSong.duration}</span>
                 </div>
                 
-                <div className="controls-right">
-                    <button className="control-btn-glass" onClick={prevSong}>⏮</button>
-                    <button className="play-btn-glass" onClick={togglePlay}>
-                        {isPlaying ? '⏸' : '▶'}
+                <div className="spotify-controls-row">
+                    <button className="spotify-play-btn-large" onClick={prevSong}>
+                        <img src="./images/backward.png" alt="Previous" className="control-icon" />
                     </button>
-                    <button className="control-btn-glass" onClick={nextSong}>⏭</button>
+                    <button className="spotify-play-btn-large" onClick={togglePlay}>
+                        <img 
+                            src={isPlaying ? "./images/pause.png" : "./images/resume.png"} 
+                            alt={isPlaying ? "Pause" : "Play"} 
+                            className="play-icon" 
+                        />
+                    </button>
+                    <button className="spotify-play-btn-large" onClick={nextSong}>
+                        <img src="./images/forward.png" alt="Next" className="control-icon" />
+                    </button>
                 </div>
             </div>
             
-            <button className="open-spotify-btn" onClick={openInSpotify}>
+            <button className="spotify-open-link" onClick={openInSpotify}>
                 Open in Spotify
             </button>
         </div>
@@ -536,14 +727,6 @@ const InboxView = ({ onContactClick }) => (
 const PhoneApp = () => {
     const [activeView, setActiveView] = useState('inbox');
     const [selectedContact, setSelectedContact] = useState(null);
-    const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
-    
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
-        }, 60000);
-        return () => clearInterval(timer);
-    }, []);
 
     const handleContactClick = (contactId) => {
         setSelectedContact(contactId);
@@ -560,14 +743,9 @@ const PhoneApp = () => {
             <div className="phone-notch"></div>
             <div className="screen">
                 <div className="status-bar">
-                    <span>{time}</span>
+                    <span></span>
                     <div className="status-bar-icons">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-                            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-                            <line x1="12" y1="20" x2="12.01" y2="20"></line>
-                        </svg>
+                        {/* Removed WiFi icon */}
                     </div>
                 </div>
                 {activeView === 'inbox' ? (
@@ -581,8 +759,454 @@ const PhoneApp = () => {
     );
 };
 
-// Root Component
-const PortfolioOS = () => {
+// Mobile/Tablet App Components
+// Mobile Professional Component (iOS Style)
+const MobileProfessional = () => {
+    const [selectedExperience, setSelectedExperience] = useState(null);
+    const [activeCategory, setActiveCategory] = useState('professional');
+    
+    const renderExperience = (exp, index) => (
+        <div key={index} className="mobile-experience-card" onClick={() => setSelectedExperience(exp)}>
+            <div className="mobile-exp-content">
+                <div className="mobile-exp-header">
+                    <h3 className="mobile-exp-title">{exp.title}</h3>
+                    <span className="mobile-exp-dates">{exp.dates}</span>
+                </div>
+                <p className="mobile-exp-company">{exp.company}</p>
+                <p className="mobile-exp-snippet">{exp.description[0].substring(0, 120)}...</p>
+            </div>
+            {(activeCategory === 'professional' || activeCategory === 'education') && (
+                <img src={exp.logo} alt={`${exp.company} logo`} className="mobile-exp-logo" />
+            )}
+        </div>
+    );
+    
+    return (
+        <div className="mobile-professional">
+            <div className="mobile-header">
+                <h1>Shrey Katyal</h1>
+                <p>CS + Math @ UW-Madison</p>
+            </div>
+            
+            <div className="mobile-category-tabs">
+                {Object.keys(experiencesData).map(key => (
+                    <button 
+                        key={key} 
+                        className={`mobile-category-tab ${activeCategory === key ? 'active' : ''}`}
+                        onClick={() => setActiveCategory(key)}
+                    >
+                        {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </button>
+                ))}
+            </div>
+            
+            <div className="mobile-experience-list">
+                {experiencesData[activeCategory].map(renderExperience)}
+            </div>
+            
+            {selectedExperience && (
+                <div className="mobile-modal-overlay" onClick={() => setSelectedExperience(null)}>
+                    <div className="mobile-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="mobile-modal-header">
+                            <h2>{selectedExperience.title}</h2>
+                            <button onClick={() => setSelectedExperience(null)}>✕</button>
+                        </div>
+                        <div className="mobile-modal-content">
+                            <p><strong>{selectedExperience.company}</strong> | {selectedExperience.location}</p>
+                            <p><em>{selectedExperience.dates}</em></p>
+                            <ul>{selectedExperience.description.map((item, i) => <li key={i}>{item}</li>)}</ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Mobile Thoughts Component (iOS Style)
+// Mobile Blog Post Component for full-page content
+const MobileBlogPost = ({ post, onBack }) => {
+    const [content, setContent] = useState('');
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        if (post?.content) {
+            setContent(parseMarkdown(post.content));
+            setLoading(false);
+        } else if (post?.file) {
+            // Load from file if not already loaded
+            fetch(`./blog-posts/${post.file}`)
+                .then(response => response.text())
+                .then(text => {
+                    setContent(parseMarkdown(text));
+                    setLoading(false);
+                })
+                .catch(() => {
+                    setContent('Error loading blog post content.');
+                    setLoading(false);
+                });
+        }
+    }, [post]);
+    
+    if (loading) {
+        return (
+            <div className="mobile-blog-post-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading article...</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="mobile-blog-post">
+            <div className="mobile-blog-post-header">
+                <h1>{post.title}</h1>
+                <p className="blog-post-date">{post.date}</p>
+            </div>
+            <div 
+                className="mobile-blog-post-content"
+                dangerouslySetInnerHTML={{__html: `<p>${content}</p>`}}
+            />
+        </div>
+    );
+};
+
+const MobileThoughts = ({ onPostClick }) => {
+    const [activeTab, setActiveTab] = useState('thoughts');
+    
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'professional': return <MobileProfessional />;
+            case 'thoughts':
+            default:
+                return (
+                    <div className="mobile-blog-list">
+                        {blogPosts.map(post => (
+                            <div key={post.id} className="mobile-blog-card" onClick={() => onPostClick(post)}>
+                                <div className="mobile-blog-content">
+                                    <h3 className="mobile-blog-title">{post.title}</h3>
+                                    <p className="mobile-blog-date">{post.date}</p>
+                                    <p className="mobile-blog-preview">{post.preview}</p>
+                                </div>
+                                <div className="mobile-blog-arrow">›</div>
+                            </div>
+                        ))}
+                    </div>
+                );
+        }
+    };
+    
+    return (
+        <div className="mobile-thoughts">
+            {/* Conditional header - only show on Blog tab */}
+            {activeTab === 'thoughts' && (
+                <div className="mobile-header">
+                    <h1>Latest Posts</h1>
+                    <p>Thoughts on tech, startups, and life</p>
+                </div>
+            )}
+            
+            {/* Tab Navigation - moves to top on About Me */}
+            <div className={`mobile-tab-navigation ${activeTab === 'professional' ? 'top-position' : ''}`}>
+                <button 
+                    className={`mobile-nav-tab ${activeTab === 'thoughts' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('thoughts')}
+                >
+                    Blog
+                </button>
+                <button 
+                    className={`mobile-nav-tab ${activeTab === 'professional' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('professional')}
+                >
+                    About Me
+                </button>
+            </div>
+            
+            {renderContent()}
+        </div>
+    );
+};
+
+// Mobile Safari Browser App Component
+const MobileSafariApp = ({ isActive, onClose }) => {
+    const [activeTab, setActiveTab] = useState('thoughts');
+    const [viewStack, setViewStack] = useState([{ type: 'main', tab: 'thoughts' }]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [selectedPost, setSelectedPost] = useState(null);
+    const [blogContent, setBlogContent] = useState('');
+    
+    const navigateBack = () => {
+        if (currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+            const previousView = viewStack[currentIndex - 1];
+            if (previousView.type === 'main') {
+                setActiveTab(previousView.tab);
+                setSelectedPost(null);
+            } else if (previousView.type === 'post') {
+                setSelectedPost(previousView.post);
+            }
+        }
+    };
+    
+    const navigateForward = () => {
+        if (currentIndex < viewStack.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+            const nextView = viewStack[currentIndex + 1];
+            if (nextView.type === 'main') {
+                setActiveTab(nextView.tab);
+                setSelectedPost(null);
+            } else if (nextView.type === 'post') {
+                setSelectedPost(nextView.post);
+            }
+        }
+    };
+    
+    const handleTabChange = (tab) => {
+        const newView = { type: 'main', tab };
+        const newStack = viewStack.slice(0, currentIndex + 1);
+        newStack.push(newView);
+        setViewStack(newStack);
+        setCurrentIndex(newStack.length - 1);
+        setActiveTab(tab);
+        setSelectedPost(null);
+    };
+    
+    const handlePostClick = async (post) => {
+        // Load blog content
+        try {
+            const response = await fetch(`./blog-posts/${post.file}`);
+            const content = await response.text();
+            const postWithContent = { ...post, content };
+            
+            const newView = { type: 'post', post: postWithContent };
+            const newStack = viewStack.slice(0, currentIndex + 1);
+            newStack.push(newView);
+            setViewStack(newStack);
+            setCurrentIndex(newStack.length - 1);
+            setSelectedPost(postWithContent);
+            setBlogContent(parseMarkdown(content));
+        } catch (error) {
+            console.error('Error loading blog post:', error);
+            setBlogContent('Error loading blog post content.');
+        }
+    };
+    
+    const renderSafariContent = () => {
+        if (selectedPost) {
+            return (
+                <div className="mobile-blog-post">
+                    <div className="mobile-blog-post-header">
+                        <h1>{selectedPost.title}</h1>
+                        <p className="blog-post-date">{selectedPost.date}</p>
+                    </div>
+                    <div 
+                        className="mobile-blog-post-content"
+                        dangerouslySetInnerHTML={{__html: `<p>${blogContent}</p>`}}
+                    />
+                </div>
+            );
+        }
+        
+        switch (activeTab) {
+            case 'professional': return <MobileProfessional />;
+            case 'thoughts': return <MobileThoughts onPostClick={handlePostClick} />;
+            default: return <MobileThoughts onPostClick={handlePostClick} />;
+        }
+    };
+    
+    return (
+        <div className={`mobile-app safari-app ${isActive ? 'active' : ''}`}>
+            {/* Safari Content Area */}
+            <div className="safari-content-area">
+                {renderSafariContent()}
+            </div>
+            
+            {/* Safari Floating Bottom UI */}
+            <div className="safari-bottom-ui">
+                {/* Safari floating controls */}
+                <div className="safari-floating-controls">
+                    <button 
+                        className={`safari-nav-btn back ${currentIndex === 0 ? 'disabled' : ''}`}
+                        onClick={navigateBack}
+                        disabled={currentIndex === 0}
+                    >
+                        ‹
+                    </button>
+                    <button 
+                        className={`safari-nav-btn forward ${currentIndex === viewStack.length - 1 ? 'disabled' : ''}`}
+                        onClick={navigateForward}
+                        disabled={currentIndex === viewStack.length - 1}
+                    >
+                        ›
+                    </button>
+                    <div className="safari-address-bar">
+                        <div className="address-bar-content">
+                            <span className="address-icon">🔒</span>
+                            <span className="address-text">portfolio.app</span>
+                        </div>
+                    </div>
+                    <button className="safari-nav-btn tabs">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MobileSpotifyApp = ({ isActive, onClose }) => {
+    return (
+        <div className={`mobile-app ${isActive ? 'active' : ''}`}>
+            <div className="mobile-app-content spotify-fullscreen">
+                <SpotifyDisplay />
+            </div>
+        </div>
+    );
+};
+
+const MobileMessagesApp = ({ isActive, onClose }) => {
+    return (
+        <div className={`mobile-app ${isActive ? 'active' : ''}`}>
+            <div className="mobile-app-content">
+                <PhoneApp />
+            </div>
+        </div>
+    );
+};
+
+// Mobile/Tablet Layout Component
+const MobileLayout = ({ deviceType }) => {
+    const [activeApp, setActiveApp] = useState('browser'); // Start with browser open
+    const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }, 60000);
+        return () => clearInterval(timer);
+    }, []);
+    
+    const switchApp = (appName) => {
+        setActiveApp(appName);
+    };
+    
+    const closeApp = () => {
+        setActiveApp('browser'); // Default back to browser
+    };
+    
+    const isTablet = deviceType === 'tablet';
+    
+    return (
+        <div className="mobile-layout">
+            {/* Status Bar */}
+            <div className="mobile-status-bar">
+                <span>{time}</span>
+                <div className="mobile-status-icons">
+                    <div className="signal-bars">
+                        <div className="bar"></div>
+                        <div className="bar"></div>
+                        <div className="bar"></div>
+                        <div className="bar active"></div>
+                    </div>
+                    <div className="wifi-icon">
+                        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+                            <path d="M8 0C3.6 0 0 2.6 0 6c0 0.3 0.1 0.6 0.2 0.8l1.5-1.5c-0.1-0.1-0.2-0.2-0.2-0.3 0-2.2 2.7-4 6-4s6 1.8 6 4c0 0.1-0.1 0.2-0.2 0.3l1.5 1.5c0.1-0.2 0.2-0.5 0.2-0.8C16 2.6 12.4 0 8 0z"/>
+                            <path d="M8 3c-2.2 0-4 1.3-4 3 0 0.2 0.1 0.4 0.2 0.6l1.5-1.5c0-0.1-0.1-0.1-0.1-0.1 0-1.1 1.3-2 3-2s3 0.9 3 2c0 0 0 0.1-0.1 0.1l1.5 1.5c0.1-0.2 0.2-0.4 0.2-0.6C12 4.3 10.2 3 8 3z"/>
+                            <circle cx="8" cy="9" r="1"/>
+                        </svg>
+                    </div>
+                    <div className="battery-icon">
+                        <svg width="24" height="12" viewBox="0 0 24 12" fill="currentColor">
+                            <rect x="1" y="2" width="20" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1"/>
+                            <rect x="3" y="4" width="16" height="4" rx="1" fill="currentColor"/>
+                            <rect x="22" y="4" width="1" height="4" rx="0.5" fill="currentColor"/>
+                        </svg>
+                        <span className="battery-percent">57</span>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Notch */}
+            <div className="mobile-notch"></div>
+            
+            {/* Content Area */}
+            <div className="mobile-content">
+                <MobileSafariApp isActive={activeApp === 'browser'} onClose={closeApp} />
+                <MobileSpotifyApp isActive={activeApp === 'spotify'} onClose={closeApp} />
+                <MobileMessagesApp isActive={activeApp === 'messages'} onClose={closeApp} />
+            </div>
+            
+            {/* Dock */}
+            <div className="mobile-dock">
+                <div 
+                    className={`dock-app messages ${activeApp === 'messages' ? 'active' : ''}`}
+                    onClick={() => switchApp('messages')}
+                >
+                    <img src="./images/imessage-logo.png" alt="Messages" className="dock-app-icon" />
+                </div>
+                <div 
+                    className={`dock-app browser ${activeApp === 'browser' ? 'active' : ''}`}
+                    onClick={() => switchApp('browser')}
+                >
+                    <img src="./images/safari-logo.png" alt="Safari" className="dock-app-icon" />
+                </div>
+                <div 
+                    className={`dock-app spotify ${activeApp === 'spotify' ? 'active' : ''}`}
+                    onClick={() => switchApp('spotify')}
+                >
+                    <img src="./images/spotify-logo.png" alt="Spotify" className="dock-app-icon" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Small Desktop Layout Component  
+const SmallDesktopLayout = () => {
+    return (
+        <>
+            <div className="top-bar">
+                <div className="top-bar-left">
+                    <div className="logo">Shrey's Portfolio</div>
+                </div>
+                <div className="notch"><span></span></div>
+                <div className="top-bar-right">
+                    <span id="top-time">--:--</span>
+                </div>
+            </div>
+            
+            <div className="small-desktop-layout">
+                <div className="browser-section">
+                    <MainWindowApp />
+                </div>
+                
+                <div className="spotify-section">
+                    <DesktopSpotifyWidget />
+                </div>
+                
+                <div className="phone-section">
+                    <PhoneApp />
+                </div>
+                
+                <div className="taskbar">
+                    <div className="taskbar-content">
+                        <a href="https://github.com/shreyk2" target="_blank" className="taskbar-link">GitHub</a>
+                        <a href="https://www.linkedin.com/in/shrey-katyal-801948223/" target="_blank" className="taskbar-link">LinkedIn</a>
+                        <a href="mailto:shreykatyal21@gmail.com" className="taskbar-link">Email Me</a>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+// Desktop Layout Component
+const DesktopLayout = () => {
     const [showOnboarding, setShowOnboarding] = useState(true);
     const [currentTip, setCurrentTip] = useState(0);
     
@@ -627,7 +1251,7 @@ const PortfolioOS = () => {
     }, []);
     
     return (
-        <StrictMode>
+        <>
             <div className="top-bar">
                 <div className="top-bar-left">
                     <div className="logo">Shrey's Portfolio</div>
@@ -670,7 +1294,7 @@ const PortfolioOS = () => {
             <div className="taskbar">
                 <div className="taskbar-content">
                      <a href="https://github.com/shreyk2" target="_blank" className="taskbar-link">GitHub</a>
-                     <a href="https://www.linkedin.com/in/shrey-katyal" target="_blank" className="taskbar-link">LinkedIn</a>
+                     <a href="https://www.linkedin.com/in/shrey-katyal-801948223/" target="_blank" className="taskbar-link">LinkedIn</a>
                      <a href="mailto:shreykatyal21@gmail.com" className="taskbar-link">Email Me</a>
                 </div>
             </div>
@@ -688,6 +1312,29 @@ const PortfolioOS = () => {
                     isLast={currentTip === tips.length - 1}
                 />
             )}
+        </>
+    );
+};
+
+// Root Component
+const PortfolioOS = () => {
+    const deviceType = useDeviceType();
+    
+    // Render different layouts based on device type
+    return (
+        <StrictMode>
+            {(() => {
+                switch (deviceType) {
+                    case 'mobile':
+                    case 'tablet':
+                        return <MobileLayout deviceType={deviceType} />;
+                    case 'small-desktop':
+                        return <SmallDesktopLayout />;
+                    case 'desktop':
+                    default:
+                        return <DesktopLayout />;
+                }
+            })()}
         </StrictMode>
     );
 };
