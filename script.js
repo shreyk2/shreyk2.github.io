@@ -54,6 +54,7 @@ const blogPosts = [
     { id: 1, title: "FastAPI: The Perfect Tool for Rapid Prototyping and Development", date: "August 12, 2025", preview: "Why FastAPI became my go-to choice for building production systems at Fetch, and how it enabled rapid development without sacrificing quality.", file: "fastapi-rapid-prototyping.txt" },
     { id: 2, title: "Computer Vision in Production: Lessons from Poker Analytics", date: "August 10, 2025", preview: "Working on live-stream poker analysis at sidebetz.ai taught me valuable lessons about deploying computer vision models in production.", file: "computer-vision-production.txt" },
     { id: 3, title: "From Microservices to Event Sourcing", date: "August 8, 2025", preview: "My experience in Taiwan working with CQRS patterns and event-driven architecture fundamentally changed how I think about system design.", file: "microservices-event-sourcing.txt" },
+    { id: 4, title: "Why AI Outputs Need to Be Standardized: The Hidden Problem in Production AI", date: "August 23, 2025", preview: "The real challenge in production AI isn’t just model quality—it’s making outputs reliable, predictable, and standardized.", file: "ai-output-standardization.txt" },
 ];
 
 const conversations = {
