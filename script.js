@@ -584,14 +584,29 @@ const Thoughts = () => {
         setIsFullScreen(prev => !prev);
     };
 
+    // Sort posts by date descending
+    const sortedPosts = [...blogPosts].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Group posts into rows of 3
+    const rows = [];
+    for (let i = 0; i < sortedPosts.length; i += 3) {
+        rows.push(sortedPosts.slice(i, i + 3));
+    }
     return (
         <div className="window-content">
-            <div className="thoughts-container">
-                {blogPosts.map(post => (
-                     <div key={post.id} className="thought-post" onClick={() => handleSelectPost(post)}>
-                        <h3>{post.title}</h3>
-                        <em>{post.date}</em>
-                        <p>{post.preview}</p>
+            <div className="thoughts-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {rows.map((row, rowIdx) => (
+                    <div key={rowIdx} style={{ display: 'flex', gap: '24px' }}>
+                        {row.map(post => (
+                            <div key={post.id} className="thought-post" style={{ flex: 1 }} onClick={() => handleSelectPost(post)}>
+                                <h3>{post.title}</h3>
+                                <em>{post.date}</em>
+                                <p>{post.preview}</p>
+                            </div>
+                        ))}
+                        {/* Fill empty slots if less than 3 */}
+                        {Array.from({ length: 3 - row.length }).map((_, i) => (
+                            <div key={i} style={{ flex: 1 }} />
+                        ))}
                     </div>
                 ))}
             </div>
@@ -875,21 +890,36 @@ const MobileBlogPost = ({ post, onBack }) => {
 const MobileThoughts = ({ onPostClick }) => {
     const [activeTab, setActiveTab] = useState('thoughts');
     
+    // Sort posts by date descending
+    const sortedPosts = [...blogPosts].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Group posts into rows of 3
+    const rows = [];
+    for (let i = 0; i < sortedPosts.length; i += 3) {
+        rows.push(sortedPosts.slice(i, i + 3));
+    }
     const renderContent = () => {
         switch (activeTab) {
             case 'professional': return <MobileProfessional />;
             case 'thoughts':
             default:
                 return (
-                    <div className="mobile-blog-list">
-                        {blogPosts.map(post => (
-                            <div key={post.id} className="mobile-blog-card" onClick={() => onPostClick(post)}>
-                                <div className="mobile-blog-content">
-                                    <h3 className="mobile-blog-title">{post.title}</h3>
-                                    <p className="mobile-blog-date">{post.date}</p>
-                                    <p className="mobile-blog-preview">{post.preview}</p>
-                                </div>
-                                <div className="mobile-blog-arrow">›</div>
+                    <div className="mobile-blog-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {rows.map((row, rowIdx) => (
+                            <div key={rowIdx} style={{ display: 'flex', gap: '12px' }}>
+                                {row.map(post => (
+                                    <div key={post.id} className="mobile-blog-card" style={{ flex: 1 }} onClick={() => onPostClick(post)}>
+                                        <div className="mobile-blog-content">
+                                            <h3 className="mobile-blog-title">{post.title}</h3>
+                                            <p className="mobile-blog-date">{post.date}</p>
+                                            <p className="mobile-blog-preview">{post.preview}</p>
+                                        </div>
+                                        <div className="mobile-blog-arrow">›</div>
+                                    </div>
+                                ))}
+                                {/* Fill empty slots if less than 3 */}
+                                {Array.from({ length: 3 - row.length }).map((_, i) => (
+                                    <div key={i} style={{ flex: 1 }} />
+                                ))}
                             </div>
                         ))}
                     </div>
